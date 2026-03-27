@@ -1,8 +1,0 @@
-# Changes here will be overwritten by Copier; NEVER EDIT MANUALLY
-_commit: 3091f5b
-_src_path: gh:kdrivas/repo-tmp
-author_email: john.doe@example.com
-author_name: John Doe
-package_name: fraud
-project_description: A machine learning pipeline project
-python_version: '3.12'
