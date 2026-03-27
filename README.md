@@ -1,0 +1,148 @@
+# fraud
+
+A machine learning pipeline project
+
+## Getting started
+
+1. Create an empty repository on GitHub and clone it locally:
+   ```bash
+   git clone <your-repo-url>
+   cd <your-repo-name>
+   ```
+2. Scaffold the project from this template:
+   ```bash
+   copier copy gh:kdrivas/repo-tmp .
+   ```
+
+## Requirements
+
+- Python 3.12
+- [`gcloud` CLI](https://cloud.google.com/sdk/docs/install) installed and authenticated:
+
+  ```bash
+  gcloud auth login                    # authenticates your user account
+  gcloud auth application-default login  # sets credentials for local tools (uv, Docker)
+  ```
+
+## Installation
+
+**1. Run the bootstrap script:**
+
+```bash
+bash scripts/install_dependencies.sh
+```
+
+This installs `uv` and `just` if not already present, then runs `just install`, `just setup-hooks`, and initializes the `detect-secrets` baseline. The script removes itself when done.
+
+## Usage
+
+A pipeline is a sequence of ordered steps that transforms raw data into a trained and evaluated ML model.
+
+This template provides two example ML pipelines built on [Flyte](https://flyte.org/) and [`mlops-lib`](https://github.com/paccar/aacoe-mlops-observability-lib/):
+
+- **`CompletePipeline`** — full regression workflow: ingestion → preprocess → split → postprocess → model selection → train → evaluate.
+- **`SimplifiedPipeline`** — minimal classification workflow: ingestion → split → train → evaluate.
+
+Use these as starting points and replace them with your own pipeline logic.
+
+The template also includes the following automations out of the box:
+
+| Automation | Tool | Trigger |
+|---|---|---|
+| Linting & formatting | Ruff | pre-commit + CI |
+| Type checking | Basedpyright | pre-commit + CI |
+| Docstring coverage (≥ 80 %) | docstr-coverage | pre-commit + CI |
+| Test coverage (≥ 60 %) | pytest-cov | pre-commit + CI |
+| Secret scanning | detect-secrets | pre-commit |
+| Notebook output stripping | nbstripout | pre-commit |
+| PR style validation | GitHub Actions | on PR open/edit |
+
+### Generate a pipeline YAML config
+
+```bash
+just pipeline-yaml fraud/pipelines/complete_pipeline.py complete_pipeline
+# → generates pipelines/complete_pipeline.yaml
+```
+
+### Run a pipeline locally
+
+```bash
+just pipeline-run pipelines/complete_pipeline.yaml
+```
+
+Mode options: `local` (default), `remote`.
+
+```bash
+just pipeline-run pipelines/complete_pipeline.yaml remote
+```
+
+### Build and run the Docker image
+
+```bash
+just docker-build      # Build the image (required before running pipelines remotely)
+just docker-run        # Run the container, loading .env if it exists
+```
+
+For linux/amd64 (e.g. GCP deployment):
+
+```bash
+just docker-build-amd64
+```
+
+### Other commands
+
+```bash
+just install           # Install project dependencies
+just test              # Run tests
+just test-coverage     # Run tests with coverage report
+just lint              # Check linting
+just lint-fix          # Auto-fix lint issues
+just format            # Format code
+just check-all         # Run all quality checks
+```
+
+## Project structure
+
+```
+.
+├── fraud/             # Main source package
+│   ├── pipelines/                  # Pipeline definitions (one file per pipeline)
+│   │   ├── complete_pipeline.py
+│   │   └── simplified_pipeline.py
+│   └── data.py                     # Dataset generation utilities
+│
+├── pipelines/                      # Generated YAML configs for each pipeline
+│   ├── complete_pipeline.yaml
+│   └── simplified_pipeline.yaml
+│
+├── tests/                          # Unit and integration tests
+├── notebooks/                      # Exploratory notebooks
+├── docs/                           # Project documentation
+├── infrastructure/                 # Dockerfile and build config
+├── scripts/                        # Utility scripts (install_dependencies.sh, …)
+│
+├── justfile                        # Task runner (install, run, test, lint, …)
+├── pyproject.toml                  # Project metadata and dependencies
+├── ruff.toml                       # Linter/formatter configuration
+└── pyrightconfig.json              # Type checker configuration
+```
+
+## Adding a new pipeline
+
+1. Create `fraud/pipelines/my_pipeline.py` implementing `FlytePipeline`.
+2. Iterate on the pipeline by running it directly with `uv run python`. This is recommended during development since it skips YAML generation and lets you test quickly before the file is finalized:
+   ```bash
+   uv run python -m fraud.pipelines.my_pipeline
+   ```
+3. Once the pipeline is ready, build the Docker image — pipelines reference it at runtime:
+   ```bash
+   just docker-build
+   ```
+4. Generate its YAML config:
+   ```bash
+   just pipeline-yaml fraud/pipelines/my_pipeline.py my_pipeline
+   ```
+5. Run it via the YAML config:
+   ```bash
+   just pipeline-run pipelines/my_pipeline.yaml
+   ```
